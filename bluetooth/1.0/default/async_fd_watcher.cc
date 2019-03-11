@@ -67,7 +67,13 @@ int AsyncFdWatcher::ConfigureTimeout(
 
 void AsyncFdWatcher::StopWatchingFileDescriptors() { stopThread(); }
 
-AsyncFdWatcher::~AsyncFdWatcher() {}
+AsyncFdWatcher::~AsyncFdWatcher() { 
+  ALOGE("~AsyncFdWatcher %d,%d",notification_listen_fd_,notification_write_fd_);
+  if(notification_listen_fd_ >= 0)
+    close(notification_listen_fd_);
+  if(notification_write_fd_ >= 0)
+    close(notification_write_fd_);
+}
 
 // Make sure to call this with at least one file descriptor ready to be
 // watched upon or the thread routine will return immediately

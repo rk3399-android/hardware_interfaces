@@ -28,6 +28,7 @@
 #include "mct_protocol.h"
 
 static const char* VENDOR_LIBRARY_NAME = "libbt-vendor.so";
+static const char* VENDOR_REALTEK_LIBRARY_NAME = "libbt-vendor-realtek.so";
 static const char* VENDOR_LIBRARY_SYMBOL_NAME =
     "BLUETOOTH_VENDOR_LIB_INTERFACE";
 
@@ -181,6 +182,9 @@ void VendorInterface::Shutdown() {
 
 VendorInterface* VendorInterface::get() { return g_vendor_interface; }
 
+static char wifi_type[64] = {0};
+extern "C" int check_wifi_chip_type_string(char *type);
+
 bool VendorInterface::Open(InitializeCompleteCallback initialize_complete_cb,
                            PacketReadCallback event_cb,
                            PacketReadCallback acl_cb,
@@ -188,13 +192,25 @@ bool VendorInterface::Open(InitializeCompleteCallback initialize_complete_cb,
   initialize_complete_cb_ = initialize_complete_cb;
 
   // Initialize vendor interface
-
-  lib_handle_ = dlopen(VENDOR_LIBRARY_NAME, RTLD_NOW);
-  if (!lib_handle_) {
-    ALOGE("%s unable to open %s (%s)", __func__, VENDOR_LIBRARY_NAME,
-          dlerror());
-    return false;
+  if (wifi_type[0] == 0) {
+	  check_wifi_chip_type_string(wifi_type);
   }
+
+  if (0 == strncmp(wifi_type, "RTL", 3)) {
+	ALOGE("%s try to open %s \n", __func__, VENDOR_REALTEK_LIBRARY_NAME);
+	lib_handle_ = dlopen(VENDOR_REALTEK_LIBRARY_NAME, RTLD_NOW);
+	if (!lib_handle_) {
+		ALOGE("%s unable to open %s (%s)\n", __func__, VENDOR_REALTEK_LIBRARY_NAME,dlerror());
+		return false;
+	}
+  } else {
+	lib_handle_ = dlopen(VENDOR_LIBRARY_NAME, RTLD_NOW);
+	ALOGE("%s try to open %s \n", __func__, VENDOR_LIBRARY_NAME);
+	if (!lib_handle_) {
+		ALOGE("%s unable to open %s (%s)\n", __func__, VENDOR_LIBRARY_NAME,dlerror());
+		return false;
+  }
+}
 
   lib_interface_ = reinterpret_cast<bt_vendor_interface_t*>(
       dlsym(lib_handle_, VENDOR_LIBRARY_SYMBOL_NAME));

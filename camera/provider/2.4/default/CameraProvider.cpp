@@ -224,6 +224,7 @@ bool CameraProvider::initialize() {
             mPreferredHal3MinorVersion = 3;
     }
 
+    mCameraDeviceNames.clear();
     mNumberOfLegacyCameras = mModule->getNumberOfCameras();
     for (int i = 0; i < mNumberOfLegacyCameras; i++) {
         struct camera_info info;
@@ -379,6 +380,16 @@ Return<void> CameraProvider::getVendorTags(getVendorTags_cb _hidl_cb)  {
 
 Return<void> CameraProvider::getCameraIdList(getCameraIdList_cb _hidl_cb)  {
     std::vector<hidl_string> deviceNameList;
+    char value[PROPERTY_VALUE_MAX];
+
+    memset(value, 0, sizeof(value));
+    property_get("persist.sys.usbcamera.status", value, "");
+    if((strcmp(value, "add") == 0)||(strcmp(value, "remove") == 0)){
+        ALOGD("usb camera hotpluged,reinit camera provider");
+        mModule.clear();
+        deviceNameList.clear();
+        initialize();
+    }
     for (auto const& deviceNamePair : mCameraDeviceNames) {
         if (mCameraStatusMap[deviceNamePair.first] == CAMERA_DEVICE_STATUS_PRESENT) {
             deviceNameList.push_back(deviceNamePair.second);
