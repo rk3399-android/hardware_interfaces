@@ -41,6 +41,7 @@ std::unique_ptr<CommBase> CommFactory::create() {
     if (isEmulator) {
         return std::make_unique<PipeComm>();
     } else {
+		ALOGE("not Emulator");
         return std::make_unique<SocketComm>();
     }
 }
@@ -97,6 +98,7 @@ void VehicleEmulator::doGetProperty(VehicleEmulator::EmulatorMessage& rxMsg,
     int32_t areaId = 0;
     emulator::VehiclePropGet getProp = rxMsg.prop(0);
     int32_t propId = getProp.prop();
+    ALOGE("PROP 0x%x", propId);
     emulator::Status status = emulator::ERROR_INVALID_PROPERTY;
 
     respMsg.set_msg_type(emulator::GET_PROPERTY_RESP);
@@ -109,18 +111,20 @@ void VehicleEmulator::doGetProperty(VehicleEmulator::EmulatorMessage& rxMsg,
         VehiclePropValue request = { .prop = propId, .areaId = areaId };
         StatusCode halStatus;
         auto val = mHal->get(request, &halStatus);
+        
         if (val != nullptr) {
+			ALOGE("val non null");
             emulator::VehiclePropValue* protoVal = respMsg.add_value();
             populateProtoVehiclePropValue(protoVal, val.get());
             status = emulator::RESULT_OK;
         }
     }
-
+	ALOGE("size %d", respMsg.value_size());
     respMsg.set_status(status);
 }
 
 void VehicleEmulator::doGetPropertyAll(VehicleEmulator::EmulatorMessage& /* rxMsg */,
-                                       VehicleEmulator::EmulatorMessage& respMsg)  {
+                                       VehicleEmulator::EmulatorMessage& respMsg)  {									   
     respMsg.set_msg_type(emulator::GET_PROPERTY_ALL_RESP);
     respMsg.set_status(emulator::RESULT_OK);
 
@@ -130,16 +134,23 @@ void VehicleEmulator::doGetPropertyAll(VehicleEmulator::EmulatorMessage& /* rxMs
             populateProtoVehiclePropValue(protoVal, &prop);
         }
     }
+    ALOGE("VehicleEmulator resp valuesize %d\n", respMsg.value_size());
+    ALOGE("size %d",respMsg.ByteSize());
+    for(int i=0; i<respMsg.value_size(); i++){
+		ALOGE( "  value[%d] prop: 0x%x\n",i,respMsg.mutable_value(i)->prop());
+	}	
 }
 
 void VehicleEmulator::doSetProperty(VehicleEmulator::EmulatorMessage& rxMsg,
                                     VehicleEmulator::EmulatorMessage& respMsg) {
+	ALOGE("setproperty");
     emulator::VehiclePropValue protoVal = rxMsg.value(0);
     VehiclePropValue val = {
         .prop = protoVal.prop(),
         .areaId = protoVal.area_id(),
         .timestamp = elapsedRealtimeNano(),
     };
+    ALOGE("prop%d",val.prop);
 
     respMsg.set_msg_type(emulator::SET_PROPERTY_RESP);
 
@@ -154,6 +165,7 @@ void VehicleEmulator::doSetProperty(VehicleEmulator::EmulatorMessage& rxMsg,
     }
 
     if (protoVal.int32_values_size() > 0) {
+		ALOGE("hasintvalue");
         val.value.int32Values = std::vector<int32_t> { protoVal.int32_values().begin(),
                                                        protoVal.int32_values().end() };
     }
@@ -164,18 +176,23 @@ void VehicleEmulator::doSetProperty(VehicleEmulator::EmulatorMessage& rxMsg,
     }
 
     if (protoVal.float_values_size() > 0) {
+		ALOGE("hasfloatvalue");
         val.value.floatValues = std::vector<float> { protoVal.float_values().begin(),
                                                      protoVal.float_values().end() };
     }
 
     bool halRes = mHal->setPropertyFromVehicle(val);
+    ALOGE("halRes %d",halRes);
     respMsg.set_status(halRes ? emulator::RESULT_OK : emulator::ERROR_INVALID_PROPERTY);
+    ALOGE("respSize%d",respMsg.ByteSize());
 }
 
 void VehicleEmulator::txMsg(emulator::EmulatorMessage& txMsg) {
+	ALOGE("txMsg");
     int numBytes = txMsg.ByteSize();
+    ALOGE("numByte %d",numBytes);
     std::vector<uint8_t> msg(static_cast<size_t>(numBytes));
-
+	ALOGE("msg.size() %lu\n", msg.size());
     if (!txMsg.SerializeToArray(msg.data(), static_cast<int32_t>(msg.size()))) {
         ALOGE("%s: SerializeToString failed!", __func__);
         return;
@@ -196,19 +213,21 @@ void VehicleEmulator::txMsg(emulator::EmulatorMessage& txMsg) {
 void VehicleEmulator::parseRxProtoBuf(std::vector<uint8_t>& msg) {
     emulator::EmulatorMessage rxMsg;
     emulator::EmulatorMessage respMsg;
-
+    ALOGE("parseRxProtoBuf");
     if (rxMsg.ParseFromArray(msg.data(), static_cast<int32_t>(msg.size()))) {
         switch (rxMsg.msg_type()) {
             case emulator::GET_CONFIG_CMD:
                 doGetConfig(rxMsg, respMsg);
                 break;
             case emulator::GET_CONFIG_ALL_CMD:
+				ALOGE("GET ALL CONFIG");
                 doGetConfigAll(rxMsg, respMsg);
                 break;
             case emulator::GET_PROPERTY_CMD:
                 doGetProperty(rxMsg, respMsg);
                 break;
             case emulator::GET_PROPERTY_ALL_CMD:
+				ALOGE("GET ALL PROPERTY");
                 doGetPropertyAll(rxMsg, respMsg);
                 break;
             case emulator::SET_PROPERTY_CMD:
@@ -287,7 +306,7 @@ void VehicleEmulator::populateProtoVehicleConfig(emulator::VehiclePropConfig* pr
 }
 
 void VehicleEmulator::populateProtoVehiclePropValue(emulator::VehiclePropValue* protoVal,
-                                                    const VehiclePropValue* val) {
+                                                   const VehiclePropValue* val) {
     protoVal->set_prop(val->prop);
     protoVal->set_value_type(toInt(getPropType(val->prop)));
     protoVal->set_timestamp(val->timestamp);
@@ -302,6 +321,7 @@ void VehicleEmulator::populateProtoVehiclePropValue(emulator::VehiclePropValue* 
 
     if (val->value.bytes.size() > 0) {
         protoVal->set_bytes_value(val->value.bytes.data(), val->value.bytes.size());
+        
     }
 
     for (auto& int32Value : val->value.int32Values) {
@@ -315,9 +335,11 @@ void VehicleEmulator::populateProtoVehiclePropValue(emulator::VehiclePropValue* 
     for (auto& floatValue : val->value.floatValues) {
         protoVal->add_float_values(floatValue);
     }
+  
 }
 
 void VehicleEmulator::rxMsg() {
+	ALOGE("rxMsg");
     while (!mExit) {
         std::vector<uint8_t> msg = mComm->read();
 
@@ -333,6 +355,7 @@ void VehicleEmulator::rxMsg() {
 }
 
 void VehicleEmulator::rxThread() {
+	ALOGE("rxThread");
     if (mExit) return;
 
     int retVal = mComm->open();

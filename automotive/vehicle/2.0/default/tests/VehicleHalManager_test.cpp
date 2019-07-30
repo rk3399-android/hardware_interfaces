@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define LOG_TAG "TEST"
+#include <log/log.h>
 
 #include <unordered_map>
 #include <iostream>
@@ -52,6 +54,7 @@ public:
 
     VehiclePropValuePtr get(const VehiclePropValue& requestedPropValue,
              StatusCode* outStatus) override {
+		
         *outStatus = StatusCode::OK;
         VehiclePropValuePtr pValue;
         auto property = static_cast<VehicleProperty>(requestedPropValue.prop);

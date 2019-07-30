@@ -44,7 +44,7 @@ public:
     virtual std::vector<VehiclePropValue> getAllProperties() const = 0;
 
     void registerEmulator(VehicleEmulator* emulator) {
-        ALOGI("%s, emulator: %p", __func__, emulator);
+        ALOGE("%s, emulator: %p", __func__, emulator);
         std::lock_guard<std::mutex> g(mEmulatorLock);
         mEmulator = emulator;
     }

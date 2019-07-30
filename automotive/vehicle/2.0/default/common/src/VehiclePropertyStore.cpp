@@ -42,6 +42,7 @@ void VehiclePropertyStore::registerProperty(const VehiclePropConfig& config,
 }
 
 bool VehiclePropertyStore::writeValue(const VehiclePropValue& propValue) {
+	ALOGE("writeValue");
     MuxGuard g(mLock);
     if (!mConfigs.count(propValue.prop)) return false;
 
@@ -93,10 +94,11 @@ std::vector<VehiclePropValue> VehiclePropertyStore::readValuesForProperty(int32_
 }
 
 std::unique_ptr<VehiclePropValue> VehiclePropertyStore::readValueOrNull(
-        const VehiclePropValue& request) const {
+        const VehiclePropValue& request) const {		
     MuxGuard g(mLock);
     RecordId recId = getRecordIdLocked(request);
     const VehiclePropValue* internalValue = getValueOrNullLocked(recId);
+    if ( internalValue==nullptr){}
     return internalValue ? std::make_unique<VehiclePropValue>(*internalValue) : nullptr;
 }
 
@@ -110,6 +112,7 @@ std::unique_ptr<VehiclePropValue> VehiclePropertyStore::readValueOrNull(
 
 
 std::vector<VehiclePropConfig> VehiclePropertyStore::getAllConfigs() const {
+	ALOGE("getAllConfig");
     MuxGuard g(mLock);
     std::vector<VehiclePropConfig> configs;
     configs.reserve(mConfigs.size());
@@ -136,14 +139,14 @@ const VehiclePropConfig* VehiclePropertyStore::getConfigOrDie(int32_t propId) co
 
 VehiclePropertyStore::RecordId VehiclePropertyStore::getRecordIdLocked(
         const VehiclePropValue& valuePrototype) const {
+			
     RecordId recId = {
         .prop = valuePrototype.prop,
         .area = isGlobalProp(valuePrototype.prop) ? 0 : valuePrototype.areaId,
         .token = 0
     };
-
     auto it = mConfigs.find(recId.prop);
-    if (it == mConfigs.end()) return {};
+    if (it == mConfigs.end())return {};
 
     if (it->second.tokenFunction != nullptr) {
         recId.token = it->second.tokenFunction(valuePrototype);
@@ -153,7 +156,12 @@ VehiclePropertyStore::RecordId VehiclePropertyStore::getRecordIdLocked(
 
 const VehiclePropValue* VehiclePropertyStore::getValueOrNullLocked(
         const VehiclePropertyStore::RecordId& recId) const  {
+			
     auto it = mPropertyValues.find(recId);
+   /* for (auto it=mPropertyValues.begin(); it!=mPropertyValues.end(); ++it){
+		ALOGE("mSubscription int 0x%x",it->first.prop);
+		ALOGE("mSubscription propId 0x%x",it->second.prop);
+	}*/
     return it == mPropertyValues.end() ? nullptr : &it->second;
 }
 

@@ -105,6 +105,7 @@ EmulatedVehicleHal::EmulatedVehicleHal(VehiclePropertyStore* propStore)
 
 VehicleHal::VehiclePropValuePtr EmulatedVehicleHal::get(
         const VehiclePropValue& requestedPropValue, StatusCode* outStatus) {
+	ALOGE("get");		
     auto propId = requestedPropValue.prop;
     auto& pool = *getValuePool();
     VehiclePropValuePtr v = nullptr;
@@ -132,6 +133,7 @@ VehicleHal::VehiclePropValuePtr EmulatedVehicleHal::get(
 }
 
 StatusCode EmulatedVehicleHal::set(const VehiclePropValue& propValue) {
+	ALOGE("EmulatedVehicleHal set");
     if (propValue.prop == kGenerateFakeDataControllingProperty) {
         StatusCode status = handleGenerateFakeDataRequest(propValue);
         if (status != StatusCode::OK) {
@@ -274,6 +276,7 @@ bool EmulatedVehicleHal::isContinuousProperty(int32_t propId) const {
 }
 
 bool EmulatedVehicleHal::setPropertyFromVehicle(const VehiclePropValue& propValue) {
+	ALOGE("setPropertyFromVehicle");
     if (propValue.prop == kGenerateFakeDataControllingProperty) {
         StatusCode status = handleGenerateFakeDataRequest(propValue);
         if (status != StatusCode::OK) {
@@ -290,6 +293,7 @@ bool EmulatedVehicleHal::setPropertyFromVehicle(const VehiclePropValue& propValu
 }
 
 std::vector<VehiclePropValue> EmulatedVehicleHal::getAllProperties() const  {
+	ALOGE("EmulatedVehicleHal getAllProperties");
     return mPropStore->readAllValues();
 }
 

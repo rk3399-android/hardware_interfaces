@@ -48,10 +48,11 @@ SocketComm::~SocketComm() {
 }
 
 int SocketComm::connect() {
+	ALOGE("SocketComm::connect");
     sockaddr_in cliAddr;
     socklen_t cliLen = sizeof(cliAddr);
     int cSockFd = accept(mSockFd, reinterpret_cast<struct sockaddr*>(&cliAddr), &cliLen);
-
+	
     if (cSockFd >= 0) {
         {
             std::lock_guard<std::mutex> lock(mMutex);
@@ -104,9 +105,12 @@ std::vector<uint8_t> SocketComm::read() {
     // This is a variable length message.
     // Read the number of bytes to rx over the socket
     numBytes = ::read(mCurSockFd, &msgSize, sizeof(msgSize));
+    ALOGE("msgSize %d",msgSize);
     msgSize = ntohl(msgSize);
-
+    ALOGE("numBytes %d",numBytes);
+    ALOGE("msgSize %d",msgSize);
     if (numBytes != sizeof(msgSize)) {
+		ALOGE("numBytes != sizeof(msgSize)");
         // This happens when connection is closed
         ALOGD("%s: numBytes=%d, expected=4", __FUNCTION__, numBytes);
         ALOGD("%s: Connection terminated on socket %d", __FUNCTION__, mCurSockFd);
@@ -114,31 +118,31 @@ std::vector<uint8_t> SocketComm::read() {
             std::lock_guard<std::mutex> lock(mMutex);
             mCurSockFd = -1;
         }
-
         return std::vector<uint8_t>();
     }
 
     std::vector<uint8_t> msg = std::vector<uint8_t>(msgSize);
-
     numBytes = ::read(mCurSockFd, msg.data(), msgSize);
-
+    ALOGE("numBytes %d",numBytes);
+    ALOGE("msgSize %d",msgSize);
     if ((numBytes == msgSize) && (msgSize > 0)) {
+		ALOGE("message reçu");
         // Received a message.
         return msg;
     } else {
         // This happens when connection is closed
         ALOGD("%s: numBytes=%d, msgSize=%d", __FUNCTION__, numBytes, msgSize);
         ALOGD("%s: Connection terminated on socket %d", __FUNCTION__, mCurSockFd);
-        {
+		{
             std::lock_guard<std::mutex> lock(mMutex);
             mCurSockFd = -1;
         }
-
         return std::vector<uint8_t>();
     }
 }
 
 void SocketComm::stop() {
+	ALOGE("SocketComm::stop");
     if (mExit == 0) {
         std::lock_guard<std::mutex> lock(mMutex);
         mExit = 1;
@@ -166,14 +170,22 @@ int SocketComm::write(const std::vector<uint8_t>& data) {
 
     // Prepare header for the message
     msgLen = static_cast<uint32_t>(data.size());
+    ALOGE("msgLen %d\n", msgLen);
     msgLen = htonl(msgLen);
-
+	ALOGE("msgLen %d\n", msgLen);
+	
     std::lock_guard<std::mutex> lock(mMutex);
     if (mCurSockFd != -1) {
         retVal = ::write(mCurSockFd, msgLenBytes, MSG_HEADER_LEN);
-
+		ALOGE("taille du message_size ecrit%d",retVal);
+		ALOGE("MSG_HEADER_LEN%d",MSG_HEADER_LEN);
         if (retVal == MSG_HEADER_LEN) {
+			ALOGE("data.size() %lu",data.size());
+			ALOGE("============\n");
             retVal = ::write(mCurSockFd, data.data(), data.size());
+            ALOGE("============\n");
+            ALOGE("%lu",data.size()); 
+            ALOGE("taille du message ecrit %d",retVal);
         }
     }
 

@@ -45,7 +45,7 @@ const VehiclePropValue kEmptyValue{};
 constexpr auto kMaxHidlVecOfVehiclPropValuePoolSize = 20;
 
 Return<void> VehicleHalManager::getAllPropConfigs(getAllPropConfigs_cb _hidl_cb) {
-    ALOGI("getAllPropConfigs called");
+    ALOGE("getAllPropConfigs called");
     hidl_vec<VehiclePropConfig> hidlConfigs;
     auto& halConfig = mConfigIndex->getAllConfigs();
 
@@ -60,6 +60,7 @@ Return<void> VehicleHalManager::getAllPropConfigs(getAllPropConfigs_cb _hidl_cb)
 
 Return<void> VehicleHalManager::getPropConfigs(const hidl_vec<int32_t> &properties,
                                                getPropConfigs_cb _hidl_cb) {
+	ALOGE("getPropConfigs called");											   
     std::vector<VehiclePropConfig> configs;
     for (size_t i = 0; i < properties.size(); i++) {
         auto prop = properties[i];
@@ -77,6 +78,7 @@ Return<void> VehicleHalManager::getPropConfigs(const hidl_vec<int32_t> &properti
 }
 
 Return<void> VehicleHalManager::get(const VehiclePropValue& requestedPropValue, get_cb _hidl_cb) {
+	ALOGE("get called");	
     const auto* config = getPropConfigOrNull(requestedPropValue.prop);
     if (config == nullptr) {
         ALOGE("Failed to get value: config not found, property: 0x%x",
@@ -99,7 +101,10 @@ Return<void> VehicleHalManager::get(const VehiclePropValue& requestedPropValue, 
 }
 
 Return<StatusCode> VehicleHalManager::set(const VehiclePropValue &value) {
+	ALOGE("set called");	
     auto prop = value.prop;
+    ALOGE("prop 0x%x",value.prop);
+    ALOGE("areaId 0x%x",value.areaId);
     const auto* config = getPropConfigOrNull(prop);
     if (config == nullptr) {
         ALOGE("Failed to set value: config not found, property: 0x%x", prop);
@@ -119,6 +124,7 @@ Return<StatusCode> VehicleHalManager::set(const VehiclePropValue &value) {
 
 Return<StatusCode> VehicleHalManager::subscribe(const sp<IVehicleCallback> &callback,
                                                 const hidl_vec<SubscribeOptions> &options) {
+	ALOGE("Subscribe called");													
     hidl_vec<SubscribeOptions> verifiedOptions(options);
     for (size_t i = 0; i < verifiedOptions.size(); i++) {
         SubscribeOptions& ops = verifiedOptions[i];
@@ -172,6 +178,7 @@ Return<StatusCode> VehicleHalManager::subscribe(const sp<IVehicleCallback> &call
 
 Return<StatusCode> VehicleHalManager::unsubscribe(const sp<IVehicleCallback>& callback,
                                                   int32_t propId) {
+	ALOGE("unsubscribe called");													  
     mSubscriptionManager.unsubscribe(getClientId(callback), propId);
     return StatusCode::OK;
 }
@@ -182,7 +189,6 @@ Return<void> VehicleHalManager::debugDump(IVehicle::debugDump_cb _hidl_cb) {
 }
 
 void VehicleHalManager::init() {
-    ALOGI("VehicleHalManager::init");
 
     mHidlVecOfVehiclePropValuePool.resize(kMaxHidlVecOfVehiclPropValuePoolSize);
 

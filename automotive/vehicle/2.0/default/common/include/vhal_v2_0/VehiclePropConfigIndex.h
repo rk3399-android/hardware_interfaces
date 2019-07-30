@@ -19,7 +19,7 @@
 
 #include <utils/KeyedVector.h>
 
-#include <android/hardware/automotive/vehicle/2.0/IVehicle.h>
+#include <android/log.h>
 
 namespace android {
 namespace hardware {
